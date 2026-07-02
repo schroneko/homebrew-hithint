@@ -1,0 +1,43 @@
+enum KeyMap {
+    static func character(for keyCode: Int64) -> String? {
+        switch keyCode {
+        case 0: return "a"
+        case 11: return "b"
+        case 8: return "c"
+        case 2: return "d"
+        case 14: return "e"
+        case 3: return "f"
+        case 5: return "g"
+        case 4: return "h"
+        case 34: return "i"
+        case 38: return "j"
+        case 40: return "k"
+        case 37: return "l"
+        case 46: return "m"
+        case 45: return "n"
+        case 31: return "o"
+        case 35: return "p"
+        case 12: return "q"
+        case 15: return "r"
+        case 1: return "s"
+        case 17: return "t"
+        case 32: return "u"
+        case 9: return "v"
+        case 13: return "w"
+        case 7: return "x"
+        case 16: return "y"
+        case 6: return "z"
+        case 18: return "1"
+        case 19: return "2"
+        case 20: return "3"
+        case 21: return "4"
+        case 23: return "5"
+        case 22: return "6"
+        case 26: return "7"
+        case 28: return "8"
+        case 25: return "9"
+        case 29: return "0"
+        default: return nil
+        }
+    }
+}

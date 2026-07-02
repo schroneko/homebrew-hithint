@@ -1,0 +1,21 @@
+name: HitHint
+options:
+  minimumXcodeGenVersion: 2.43.0
+settings:
+  base:
+    CODE_SIGN_IDENTITY: "-"
+    CODE_SIGN_STYLE: Manual
+    ENABLE_HARDENED_RUNTIME: NO
+    MACOSX_DEPLOYMENT_TARGET: "13.0"
+    SWIFT_VERSION: "5.0"
+targets:
+  HitHint:
+    type: application
+    platform: macOS
+    sources:
+      - path: Sources/HitHint
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.schroneko.HitHint
+        INFOPLIST_FILE: Sources/HitHint/Info.plist
+        PRODUCT_NAME: HitHint
