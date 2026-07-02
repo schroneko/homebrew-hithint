@@ -15,6 +15,11 @@ cask "hithint" do
                    sudo: false
   end
 
+  caveats <<~EOS
+    HitHint requires the macOS Accessibility permission.
+    Grant it in System Settings > Privacy & Security > Accessibility.
+  EOS
+
   uninstall quit: "com.schroneko.HitHint"
 
   zap trash: [
