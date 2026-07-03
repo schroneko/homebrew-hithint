@@ -1,6 +1,6 @@
 cask "hithint" do
-  version "1.1.0"
-  sha256 "1b6a4cbdc52312bd0feb5fe77c4d0e19093640be626f8b54c0b32b1b3a282ffe"
+  version "1.2.0"
+  sha256 "3304680fe1888d72aa49d65023ee4bfb31fb802310caa2c1ef5c15f7a0d758f1"
 
   url "https://github.com/schroneko/homebrew-hithint/releases/download/v#{version}/HitHint-#{version}.zip"
   name "HitHint"
