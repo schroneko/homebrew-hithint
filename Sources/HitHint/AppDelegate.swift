@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private lazy var scrollMode = ScrollModeController()
     private var statusItem: NSStatusItem?
     private var permissionWindow: NSWindow?
+    private var settingsWindowController: SettingsWindowController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -27,6 +28,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(NSMenuItem(title: "Click Labels", action: #selector(clickLabels), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Scroll Mode", action: #selector(scrollLabels), keyEquivalent: ""))
         menu.addItem(NSMenuItem.separator())
+        menu.addItem(NSMenuItem(title: "Excluded Apps...", action: #selector(openSettings), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Grant Accessibility", action: #selector(grantAccessibility), keyEquivalent: ""))
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: ""))
@@ -40,6 +42,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func scrollLabels() {
         activateScrollMode()
+    }
+
+    @objc private func openSettings() {
+        AppLogger.log("open settings requested")
+        if settingsWindowController == nil {
+            settingsWindowController = SettingsWindowController()
+        }
+        settingsWindowController?.showWindow(nil)
+        settingsWindowController?.window?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        AppLogger.log("open settings visible=\(settingsWindowController?.window?.isVisible ?? false)")
     }
 
     @objc private func grantAccessibility() {
@@ -57,6 +70,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             showPermissionWindow()
             return
         }
+        if ExcludedApps.contains(NSWorkspace.shared.frontmostApplication?.bundleIdentifier) {
+            AppLogger.log("click mode skipped: frontmost app is excluded")
+            return
+        }
         scrollMode.cancel()
         clickMode.activate()
     }
@@ -65,6 +82,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         AppLogger.log("activate scroll requested trusted=\(AXPermission.isTrusted)")
         guard AXPermission.ensureTrusted() else {
             showPermissionWindow()
+            return
+        }
+        if ExcludedApps.contains(NSWorkspace.shared.frontmostApplication?.bundleIdentifier) {
+            AppLogger.log("scroll mode skipped: frontmost app is excluded")
             return
         }
         clickMode.cancel()

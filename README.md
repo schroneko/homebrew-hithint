@@ -13,6 +13,7 @@ brew install --cask schroneko/hithint/hithint
 - Cmd+Shift+Space: show hint labels and click the target by typing its label
 - Cmd+Shift+J: scroll mode
 - Escape: deactivate
+- Menu bar HH > Excluded Apps...: drag apps in from Finder to keep HitHint inactive while they are frontmost
 
 HitHint requires the macOS Accessibility permission. Grant it in System Settings > Privacy & Security > Accessibility on first launch.
 
