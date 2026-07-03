@@ -4,17 +4,22 @@ final class PermissionViewController: NSViewController {
     private var pollTimer: Timer?
 
     override func loadView() {
-        let root = NSView(frame: NSRect(x: 0, y: 0, width: 480, height: 248))
+        let root = NSView(frame: NSRect(x: 0, y: 0, width: 480, height: 320))
         let title = NSTextField(labelWithString: "Accessibility permission is required")
         title.font = .boldSystemFont(ofSize: 18)
-        title.frame = NSRect(x: 24, y: 190, width: 432, height: 28)
+        title.frame = NSRect(x: 24, y: 262, width: 432, height: 28)
 
         let body = NSTextField(wrappingLabelWithString: "HitHint uses macOS Accessibility to find visible UI elements and click or scroll them from the keyboard.")
-        body.frame = NSRect(x: 24, y: 130, width: 432, height: 48)
+        body.frame = NSRect(x: 24, y: 202, width: 432, height: 48)
 
-        let hint = NSTextField(wrappingLabelWithString: "If HitHint doesn't appear in the Accessibility list, drag the app from Finder into the open System Settings panel.")
+        let icon = AppIconDragView(frame: NSRect(x: 24, y: 106, width: 72, height: 72))
+        icon.image = NSWorkspace.shared.icon(forFile: Bundle.main.bundlePath)
+        icon.imageScaling = .scaleProportionallyUpOrDown
+        icon.toolTip = "Drag HitHint into the Accessibility settings"
+
+        let hint = NSTextField(wrappingLabelWithString: "If HitHint doesn't appear in the Accessibility list, drag this app icon into the open System Settings panel.")
         hint.textColor = .secondaryLabelColor
-        hint.frame = NSRect(x: 24, y: 70, width: 432, height: 44)
+        hint.frame = NSRect(x: 112, y: 118, width: 344, height: 48)
 
         let settingsButton = NSButton(title: "Open System Settings", target: self, action: #selector(openSettings))
         settingsButton.bezelStyle = .rounded
@@ -27,6 +32,7 @@ final class PermissionViewController: NSViewController {
 
         root.addSubview(title)
         root.addSubview(body)
+        root.addSubview(icon)
         root.addSubview(hint)
         root.addSubview(settingsButton)
         root.addSubview(finderButton)
@@ -57,5 +63,27 @@ final class PermissionViewController: NSViewController {
 
     @objc private func showInFinder() {
         NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL])
+    }
+}
+
+final class AppIconDragView: NSImageView, NSDraggingSource {
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        unregisterDraggedTypes()
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        let item = NSDraggingItem(pasteboardWriter: Bundle.main.bundleURL as NSURL)
+        item.setDraggingFrame(bounds, contents: image)
+        beginDraggingSession(with: [item], event: event, source: self)
+        AppLogger.log("app icon drag started")
+    }
+
+    func draggingSession(_ session: NSDraggingSession, sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {
+        context == .outsideApplication ? .copy : []
     }
 }
