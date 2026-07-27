@@ -5,17 +5,24 @@ final class ClickModeController {
     private let overlays = OverlayCoordinator()
     private var targets: [AXTarget] = []
     private var query = ""
+    private(set) var isActive = false
 
     func activate() {
+        isActive = true
         query = ""
         targets = scanner.clickableTargets()
         AppLogger.log("click targets=\(targets.count)")
+        guard !targets.isEmpty else {
+            isActive = false
+            return
+        }
         overlays.show(targets: targets, mode: .click) { [weak self] press in
             self?.handle(press) ?? false
         }
     }
 
     func cancel() {
+        isActive = false
         overlays.close()
         targets.removeAll()
         query = ""
@@ -23,6 +30,10 @@ final class ClickModeController {
 
     private func handle(_ press: KeyPress) -> Bool {
         if press.isEscape {
+            cancel()
+            return true
+        }
+        if !press.isRepeat && press.isCommandDown && press.isShiftDown && (press.isSpace || press.character == "j") {
             cancel()
             return true
         }
@@ -34,7 +45,7 @@ final class ClickModeController {
             return true
         }
         if press.isReturn || press.isSpace {
-            if let target = exactTarget() {
+            if let target = targets.first(where: { $0.label == query }) {
                 AppLogger.log("click label=\(target.label) role=\(target.role) title=\(target.title)")
                 ClickPerformer.click(target: target, rightClick: press.isShiftDown, commandClick: press.isCommandDown)
                 cancel()
@@ -44,23 +55,18 @@ final class ClickModeController {
         guard let character = press.character, character.rangeOfCharacter(from: .letters) != nil else {
             return true
         }
-        query.append(character)
+        let nextQuery = query + character
+        let matches = targets.filter { $0.label.hasPrefix(nextQuery) }
+        guard !matches.isEmpty else {
+            return true
+        }
+        query = nextQuery
         overlays.update(query: query)
-        let exact = exactMatches()
-        let possible = targets.filter { $0.label.hasPrefix(query) }
-        if exact.count == 1 && possible.count == 1 {
-            AppLogger.log("click label=\(exact[0].label) role=\(exact[0].role) title=\(exact[0].title)")
-            ClickPerformer.click(target: exact[0], rightClick: press.isShiftDown, commandClick: press.isCommandDown)
+        if matches.count == 1, matches[0].label == query {
+            AppLogger.log("click label=\(matches[0].label) role=\(matches[0].role) title=\(matches[0].title)")
+            ClickPerformer.click(target: matches[0], rightClick: press.isShiftDown, commandClick: press.isCommandDown)
             cancel()
         }
         return true
-    }
-
-    private func exactTarget() -> AXTarget? {
-        exactMatches().first
-    }
-
-    private func exactMatches() -> [AXTarget] {
-        targets.filter { $0.label == query }
     }
 }

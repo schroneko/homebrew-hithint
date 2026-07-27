@@ -16,9 +16,10 @@ final class AXScanner {
     private var nextID = 0
     private let maxElements = 900
     private let maxDepth = 14
+    private let maxScrollTargets = 9
 
     func clickableTargets() -> [AXTarget] {
-        let roots = frontmostRoots()
+        let roots = frontmostRoots(includeMenuBar: true)
         var targets: [AXTarget] = []
         var visited = Set<AXUIElementWrapper>()
         for root in roots {
@@ -31,7 +32,7 @@ final class AXScanner {
     }
 
     func scrollTargets() -> [AXTarget] {
-        let roots = frontmostRoots()
+        let roots = frontmostRoots(includeMenuBar: false)
         var targets: [AXTarget] = []
         var visited = Set<AXUIElementWrapper>()
         for root in roots {
@@ -40,11 +41,9 @@ final class AXScanner {
                 break
             }
         }
-        let deduplicated = deduplicate(targets)
-        if !deduplicated.isEmpty {
-            return assignNumberLabels(to: deduplicated)
-        }
-        return assignNumberLabels(to: fallbackScrollTargets(from: roots))
+        let deduplicated = Array(deduplicate(targets).prefix(maxScrollTargets))
+        let chosen = deduplicated.isEmpty ? Array(deduplicate(fallbackScrollTargets(from: roots)).prefix(maxScrollTargets)) : deduplicated
+        return assignNumberLabels(to: chosen)
     }
 
     private enum Mode {
@@ -52,7 +51,7 @@ final class AXScanner {
         case scroll
     }
 
-    private func frontmostRoots() -> [AXUIElement] {
+    private func frontmostRoots(includeMenuBar: Bool) -> [AXUIElement] {
         guard let app = NSWorkspace.shared.frontmostApplication else {
             return []
         }
@@ -60,11 +59,12 @@ final class AXScanner {
         var roots: [AXUIElement] = []
         if let focused = copyElement(appElement, kAXFocusedWindowAttribute) {
             roots.append(focused)
+        } else if let main = copyElement(appElement, kAXMainWindowAttribute) {
+            roots.append(main)
+        } else if let windows = copyArray(appElement, kAXWindowsAttribute) {
+            roots.append(contentsOf: windows.filter { !isMinimized($0) })
         }
-        if let windows = copyArray(appElement, kAXWindowsAttribute) {
-            roots.append(contentsOf: windows)
-        }
-        if let menu = copyElement(appElement, kAXMenuBarAttribute) {
+        if includeMenuBar, let menu = copyElement(appElement, kAXMenuBarAttribute) {
             roots.append(menu)
         }
         if roots.isEmpty {
@@ -101,7 +101,7 @@ final class AXScanner {
         }
         let actions = copyActionNames(element)
         let canPress = actions.contains(kAXPressAction as String) || actions.contains(kAXShowMenuAction as String)
-        let canScroll = role == kAXScrollAreaRole as String || role == kAXScrollBarRole as String
+        let canScroll = role == kAXScrollAreaRole as String
         let clickableRoles = [
             kAXButtonRole as String,
             kAXCheckBoxRole as String,
@@ -159,13 +159,14 @@ final class AXScanner {
     }
 
     private func isUsable(frame: CGRect) -> Bool {
-        if frame.width < 4 || frame.height < 4 || frame.width.isNaN || frame.height.isNaN {
+        guard frame.origin.x.isFinite, frame.origin.y.isFinite, frame.width.isFinite, frame.height.isFinite else {
             return false
         }
-        if frame.maxX < 0 || frame.maxY < 0 {
+        if frame.width < 4 || frame.height < 4 {
             return false
         }
-        return NSScreen.screens.contains { $0.frame.intersects(frame) }
+        let cocoaFrame = ScreenCoordinates.cocoaRect(fromAccessibilityRect: frame)
+        return NSScreen.screens.contains { $0.frame.intersects(cocoaFrame) }
     }
 
     private func children(of element: AXUIElement) -> [AXUIElement] {
@@ -240,7 +241,13 @@ final class AXScanner {
     private func deduplicate(_ targets: [AXTarget]) -> [AXTarget] {
         var seen = Set<String>()
         var output: [AXTarget] = []
-        for target in targets.sorted(by: { $0.frame.minY > $1.frame.minY }) {
+        let ordered = targets.sorted {
+            if $0.frame.minY != $1.frame.minY {
+                return $0.frame.minY < $1.frame.minY
+            }
+            return $0.frame.minX < $1.frame.minX
+        }
+        for target in ordered {
             let key = "\(Int(target.frame.minX)):\(Int(target.frame.minY)):\(Int(target.frame.width)):\(Int(target.frame.height)):\(target.role)"
             if !seen.contains(key) {
                 seen.insert(key)
@@ -250,12 +257,22 @@ final class AXScanner {
         return output
     }
 
+    private func isMinimized(_ element: AXUIElement) -> Bool {
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, kAXMinimizedAttribute as CFString, &value) == .success else {
+            return false
+        }
+        return (value as? Bool) == true
+    }
+
     private func copyElement(_ element: AXUIElement, _ key: String) -> AXUIElement? {
         var value: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(element, key as CFString, &value) == .success else {
+        guard AXUIElementCopyAttributeValue(element, key as CFString, &value) == .success,
+              let value,
+              CFGetTypeID(value) == AXUIElementGetTypeID() else {
             return nil
         }
-        return value as! AXUIElement?
+        return (value as! AXUIElement)
     }
 
     private func copyArray(_ element: AXUIElement, _ key: String) -> [AXUIElement]? {
@@ -290,10 +307,12 @@ final class AXScanner {
 
     private func copyValue(_ element: AXUIElement, _ key: String) -> AXValue? {
         var value: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(element, key as CFString, &value) == .success else {
+        guard AXUIElementCopyAttributeValue(element, key as CFString, &value) == .success,
+              let value,
+              CFGetTypeID(value) == AXValueGetTypeID() else {
             return nil
         }
-        return value as! AXValue?
+        return (value as! AXValue)
     }
 }
 

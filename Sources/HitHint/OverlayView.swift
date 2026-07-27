@@ -46,10 +46,8 @@ final class OverlayView: NSView {
 
     private func drawScrollFrame(_ rect: CGRect, active: Bool) {
         let path = NSBezierPath(roundedRect: rect.insetBy(dx: 2, dy: 2), xRadius: 8, yRadius: 8)
-        (active ? NSColor.systemGreen : NSColor.systemBlue).withAlphaComponent(active ? 0.28 : 0.12).setFill()
-        path.fill()
-        (active ? NSColor.systemGreen : NSColor.systemBlue).setStroke()
-        path.lineWidth = active ? 3 : 2
+        NSColor.systemBlue.setStroke()
+        path.lineWidth = active ? 4 : 2
         path.stroke()
     }
 
@@ -84,9 +82,10 @@ final class OverlayView: NSView {
     }
 
     private func localRect(for screenRect: CGRect, in windowFrame: CGRect) -> CGRect {
-        CGRect(
+        let windowTop = ScreenCoordinates.primaryScreenHeight - windowFrame.maxY
+        return CGRect(
             x: screenRect.minX - windowFrame.minX,
-            y: windowFrame.maxY - screenRect.maxY,
+            y: screenRect.minY - windowTop,
             width: screenRect.width,
             height: screenRect.height
         )
