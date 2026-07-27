@@ -33,6 +33,7 @@ final class AppDropView: NSView {
     private let titleLabel = NSTextField(labelWithString: "Excluded apps")
     private let bodyLabel = NSTextField(wrappingLabelWithString: "Drag apps here from Finder or the Applications folder. HitHint stays inactive while an excluded app is frontmost.")
     private let emptyLabel = NSTextField(labelWithString: "No excluded apps yet")
+    private let loginCheckbox = NSButton(checkboxWithTitle: "Launch at login", target: nil, action: nil)
     private let scrollView = NSScrollView()
     private let listView = FlippedView()
     private var highlighted = false {
@@ -54,7 +55,12 @@ final class AppDropView: NSView {
         emptyLabel.textColor = .tertiaryLabelColor
         emptyLabel.alignment = .center
 
-        scrollView.frame = NSRect(x: 24, y: 24, width: 432, height: frame.height - 140)
+        loginCheckbox.target = self
+        loginCheckbox.action = #selector(toggleLaunchAtLogin(_:))
+        loginCheckbox.frame = NSRect(x: 24, y: 20, width: 432, height: 24)
+        loginCheckbox.state = LaunchAtLogin.isEnabled ? .on : .off
+
+        scrollView.frame = NSRect(x: 24, y: 56, width: 432, height: frame.height - 196)
         scrollView.autoresizingMask = [.width, .height]
         scrollView.hasVerticalScroller = true
         scrollView.drawsBackground = false
@@ -63,6 +69,12 @@ final class AppDropView: NSView {
         addSubview(titleLabel)
         addSubview(bodyLabel)
         addSubview(scrollView)
+        addSubview(loginCheckbox)
+    }
+
+    @objc private func toggleLaunchAtLogin(_ sender: NSButton) {
+        LaunchAtLogin.setEnabled(sender.state == .on)
+        sender.state = LaunchAtLogin.isEnabled ? .on : .off
     }
 
     required init?(coder: NSCoder) {
@@ -70,6 +82,7 @@ final class AppDropView: NSView {
     }
 
     func reload() {
+        loginCheckbox.state = LaunchAtLogin.isEnabled ? .on : .off
         listView.subviews.forEach { $0.removeFromSuperview() }
         let ids = ExcludedApps.bundleIdentifiers
         let rowHeight: CGFloat = 40
