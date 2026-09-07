@@ -9,10 +9,10 @@ cask "hithint" do
 
   app "HitHint.app"
 
-  postflight do
-    system_command "/usr/bin/xattr",
-                   args: ["-dr", "com.apple.quarantine", "/Applications/HitHint.app"],
-                   sudo: false
+  postflight_steps do
+    run "/usr/bin/xattr",
+        args: ["-dr", "com.apple.quarantine", "/Applications/HitHint.app"],
+        sudo: false
   end
 
   caveats <<~EOS
